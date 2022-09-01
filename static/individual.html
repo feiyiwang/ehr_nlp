@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+
+<head>
+    <title>Individual Information</title>
+
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+    <link rel="stylesheet" href="css/bootstrap-table.css" type="text/css" />
+    <script src="js/bootstrap-table.js"></script>
+    <script src="http://rawgit.com/vitalets/x-editable/master/dist/bootstrap3-editable/js/bootstrap-editable.js"></script>
+    <script src="js/table-editable.js"></script>
+
+    <script src="js/ga.js"></script>
+    <script src="js/bootstrap-table-flat-json.js"></script>
+    <script src="js/bootstrap-table-flatJSON.js"></script>
+
+    <script src="js/vis.js"></script>
+    <link href="css/vis.css" rel="stylesheet" type="text/css" />
+
+    <style type="text/css">
+        .row-index {
+            width: 50px;
+            display: inline-block;
+        }
+        .vis-item.darkRed {
+            background-color: #fcc2cc;
+            border-color: #bc1c37;
+        }
+        .vis-item.green {
+            background-color: #d4e0fd;
+            border-color: #4877af;
+        }
+    </style>
+
+    <script>
+        function getPatientList() {
+            $.ajax({
+                datatype: 'json',
+                url: '/getPatientList',
+                type: 'GET',
+                success: function(pt_json) {
+                    var patient_list = pt_json['patient_list'];
+                    var opts = document.getElementById('nameDropDown');
+                    for (var i = 0; i < patient_list.length; i++) { // [{'id':'123','name':'Jim'},{}]
+                        var opt = document.createElement('option');
+                        // opt.text = patient_list[i]['name'];
+                        // opt.value = patient_list[i]['id'];
+                        opt.text = patient_list[i]['id'];
+                        opt.value = patient_list[i]['id'];
+                        opts.add(opt);
+                    }
+                }
+            })
+        }
+
+        function getFreetextList() {
+            $.ajax({
+                datatype: 'json',
+                url: '/getFreetextList',
+                type: 'GET',
+                success: function(text_json) {
+                    var freetext_list = text_json['freetext_list'];
+                    $( "#keyword" ).autocomplete({
+                        source: freetext_list
+                    });
+                }
+            })
+        }
+
+        function getPatientNotes() {
+            var patientId = document.getElementById('nameDropDown').value,
+                keywords = document.getElementById('keyword').value;
+
+            document.getElementById('keyword').value = '';
+
+            if (patientId == ""){
+                alert("Please select one patient.");
+            }else{
+                $.ajax({
+                    datatype: 'json',
+                    url: '/getPatientNotes?patientId=' + patientId + '&keywords=' + keywords,
+                    type: 'GET',
+                    success: function(pt_notes) {
+                        // Remove it if it has existed. So can paste a new one to the container
+                        $("#visualization").empty();
+                        // DOM element where the Timeline will be attached
+                        var container = document.getElementById('visualization');
+
+                        var items = new vis.DataSet(pt_notes['timeline_notes']);
+
+                        var group = new vis.DataSet([
+                            {id: 'Inpatient', content: 'Inpatient'},
+                            {id: 'Outpatient', content: 'Outpatient'}
+                        ]);
+
+                        // Configuration for the Timeline
+                        var options = {};
+
+                        // Create a Timeline
+                        var timeline = new vis.Timeline(container, items, group, options);
+
+                        if(keywords != '') {
+                            var content = '<h4><b>The keyword you are looking for is "'+keywords+'".</b></h4><br><h4><b>Keyword in sections:</b></h4><br><div id="toolbar1"><button id="yes1" class="btn btn-success" disabled><i class="glyphicon glyphicon-ok"></i> Report Correct Sections</button>';
+                            content +='&nbsp;&nbsp;&nbsp;&nbsp;<button id="no1" class="btn btn-danger" disabled><i class="glyphicon glyphicon-remove"></i> Report Wrong Sections</button></div>';
+                            content +='<table id="table1" data-toolbar="#toolbar1"></table><br>';
+                            content +='<h4><b>Keyword in contents:</b></h4><br><table id="table2" ></table>';
+                            content += '<br><br><a href="#goTop">Go back to the top <i class="glyphicon glyphicon-arrow-up"></i></a>';
+                            document.getElementById('tablesWithKeywords').innerHTML = content;
+
+                            var key_keywords_notes = pt_notes['keywordsI' +
+                                'nKeys'],
+                                value_keywords_notes = pt_notes['keywordsInValues'];
+
+
+                            var $table1 = $('#table1'),
+                                    $table2 = $('#table2'),
+                                    $yes1 = $('#yes1'),
+                                    $no1 = $('#no1'),
+                                    selections1 = [];
+
+//                            alert(JSON.stringify(key_keywords_notes));
+
+                            $(function () {
+                                $table1.bootstrapTable({
+                                    data: key_keywords_notes,
+                                    columns: [
+                                        {
+                                            field: 'state',
+                                            checkbox: true,
+                                            //rowspan: 2,
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }, {
+                                            field: 'date',
+                                            title: 'Date',
+                                            sortable: true,
+                                            editable: true,
+                                            formatter: function (value, row) {
+                                                return row.date;
+                                            },
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }, {
+                                            field: 'noteid',
+                                            title: 'Note ID',
+                                            sortable: true,
+                                            editable: true,
+                                            formatter: function (value, row) {
+                                                return row.noteid;
+                                            },
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }, {
+                                            field: 'title',
+                                            title: 'Section',
+                                            sortable: true,
+                                            editable: true,
+                                            formatter: function (value, row) {
+                                                return row.title;
+                                            },
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }, {
+                                            field: 'content',
+                                            title: 'Content',
+                                            sortable: true,
+                                            editable: true,
+                                            formatter: function (value, row) {
+                                                return row.content;
+                                            },
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }, {
+                                            field: 'operate',
+                                            title: 'Note Operate',
+                                            events: operateEvents,
+                                            formatter: operateFormatter,
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }
+                                    ]
+                                });
+                            });
+
+                            $(function () {
+                                $table2.bootstrapTable({
+                                    data: value_keywords_notes,
+                                    columns: [
+                                        {
+                                            field: 'state',
+                                            checkbox: true,
+                                            //rowspan: 2,
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }, {
+                                            field: 'date',
+                                            title: 'Date',
+                                            sortable: true,
+                                            editable: true,
+                                            formatter: function (value, row) {
+                                                return row.date;
+                                            },
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }, {
+                                            field: 'noteid',
+                                            title: 'Note ID',
+                                            sortable: true,
+                                            editable: true,
+                                            formatter: function (value, row) {
+                                                return row.noteid;
+                                            },
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }, {
+                                            field: 'title',
+                                            title: 'Section',
+                                            sortable: true,
+                                            editable: true,
+                                            formatter: function (value, row) {
+                                                return row.title;
+                                            },
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }, {
+                                            field: 'content',
+                                            title: 'Content',
+                                            sortable: true,
+                                            editable: true,
+                                            formatter: function (value, row) {
+                                                return row.content;
+                                            },
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }, {
+                                            field: 'operate',
+                                            title: 'Note Operate',
+                                            events: operateEvents,
+                                            formatter: operateFormatter,
+                                            align: 'center',
+                                            valign: 'middle'
+                                        }
+                                    ]
+                                });
+                            });
+
+                            function operateFormatter(value, row, index) {
+                                return [
+                                    '<a class="yes" href="javascript:void(0)" title="This section is correct!">',
+                                    '<i class="glyphicon glyphicon-ok"></i>',
+                                    '</a>&nbsp;&nbsp;&nbsp;',
+                                    '<a class="no" href="javascript:void(0)" title="This section is wrong.">',
+                                    '<i class="glyphicon glyphicon-remove"></i>',
+                                    '</a>'
+                                ].join('');
+                            }
+
+                            $table1.on('check.bs.table uncheck.bs.table ' +
+                                    'check-all.bs.table uncheck-all.bs.table', function () {
+                                $yes1.prop('disabled', !$table1.bootstrapTable('getSelections').length);
+                                $no1.prop('disabled', !$table1.bootstrapTable('getSelections').length);
+                                selections1 = getIdSelections();
+                                console.log(JSON.stringify(selections1));
+                                // push or splice the selections if you want to save all data selections
+                            });
+
+                            function getIdSelections() {
+                                return $.map($table1.bootstrapTable('getSelections'), function (row) {
+                                    return row.title
+                                });
+                            }
+                        }
+
+                        var notes = pt_notes['table_notes'];
+                        $(function () {
+                            $('#noDateTable').bootstrapTable({
+                                data: notes,
+                                columns: [
+                                    {
+                                        field: 'state',
+                                        checkbox: true,
+                                        //rowspan: 2,
+                                        align: 'center',
+                                        valign: 'middle'
+                                    }, {
+                                        field: 'noteid',
+                                        title: 'NoteID',
+                                        sortable: true,
+                                        formatter: function (value, row) {
+                                            return row.id;
+                                        },
+                                        align: 'center',
+                                        valign: 'middle'
+                                    }, {
+                                        field: 'keyword',
+                                        title: 'Keywords',
+                                        align: 'center',
+                                        valign: 'middle',
+                                        formatter: function (value, row) {
+                                            return row.keyword;
+                                        }
+                                    },{
+                                        field: 'type',
+                                        title: 'Type Of Service',
+                                        align: 'center',
+                                        valign: 'middle',
+                                        formatter: function (value, row) {
+                                            return row.type;
+                                        }
+                                    }, {
+                                        field: 'identify',
+                                        title: 'Identification',
+                                        align: 'center',
+                                        valign: 'middle',
+                                        formatter: function (value, row) {
+                                            return row.identify;
+                                        }
+                                    }
+                                ]
+                            });
+                        });
+                    },
+                    error: function(XMLHttpRequest, textStatus, errorThrown) {
+                        // alert("Status: " + textStatus);
+                        // alert("Error: " + XMLHttpRequest);
+                        alert(JSON.stringify(XMLHttpRequest));
+                    }
+                })
+
+                window.operateEvents = {
+                    'click .yes': function (e, value, row, index) {
+                        alert('You click yes action, row: ' + JSON.stringify(row));
+                    },
+                    'click .no': function (e, value, row, index) {
+                        alert('You click no action, row: ' + JSON.stringify(row));
+                    }
+                };
+
+            }
+
+        }
+
+        function showNoteTable(note_id){
+            var patient_id = document.getElementById('nameDropDown').value;
+
+            var bala= '<div id="toolbar"><button id="yes" class="btn btn-success" disabled><i class="glyphicon glyphicon-ok"></i> Report Correct Sections</button>';
+            bala +='&nbsp;&nbsp;&nbsp;&nbsp;<button id="no" class="btn btn-danger" disabled><i class="glyphicon glyphicon-remove"></i> Report Wrong Sections</button></div>';
+            bala +='<table id="table" data-toolbar="#toolbar" data-search="true"></table>';
+            document.getElementById('readTable').innerHTML = bala;
+//            var newWindow = window.open("","_blank");
+
+            $.ajax({
+                datatype: 'json',
+                url: '/getNote?note_id=' + note_id + '&patient_id=' + patient_id,
+                type: 'GET',
+                success: function(note) {
+
+
+                    var aNote= note['note'];
+
+                    var sections = Object.keys(aNote);
+                    var contents = Object.values(aNote);
+                    var lines = [];
+                    for(var i = 0; i < sections.length; i++) {
+                        lines[i] = {'section': sections[i], 'content': contents[i]};
+                    }
+
+                    console.log(JSON.stringify(lines));
+
+                    var $table = $('#table'),
+                            $yes = $('#yes'),
+                            $no = $('#no'),
+                            selections = [];
+
+                    $(function () {
+                        $table.bootstrapTable({
+                            data: lines,
+                            columns: [
+                                {
+                                    field: 'state',
+                                    checkbox: true,
+                                    //rowspan: 2,
+                                    align: 'center',
+                                    valign: 'middle'
+                                }, {
+                                    field: 'section',
+                                    title: 'Sections',
+                                    sortable: true,
+                                    editable: true,
+                                    formatter: function (value, row) {
+                                        return row.section;
+                                    },
+                                    align: 'center',
+                                    valign: 'middle'
+                                }, {
+                                    field: 'content',
+                                    title: 'Contents',
+                                    sortable: true,
+                                    editable: true,
+                                    formatter: function (value, row) {
+                                        return row.content;
+                                    },
+                                    align: 'center',
+                                    valign: 'middle'
+                                }, {
+                                    field: 'operate',
+                                    title: 'Note Operate',
+                                    events: operateEvents,
+                                    formatter: operateFormatter,
+                                    align: 'center',
+                                    valign: 'middle'
+                                }
+                            ]
+                        });
+                    });
+
+
+                    function operateFormatter(value, row, index) {
+                        return [
+                            '<a class="yes" href="javascript:void(0)" title="This section is correct!">',
+                            '<i class="glyphicon glyphicon-ok"></i>',
+                            '</a>&nbsp;&nbsp;&nbsp;',
+                            '<a class="no" href="javascript:void(0)" title="This section is wrong.">',
+                            '<i class="glyphicon glyphicon-remove"></i>',
+                            '</a>'
+                        ].join('');
+                    }
+
+                    $table.on('check.bs.table uncheck.bs.table ' +
+                            'check-all.bs.table uncheck-all.bs.table', function () {
+                        $yes.prop('disabled', !$table.bootstrapTable('getSelections').length);
+                        $no.prop('disabled', !$table.bootstrapTable('getSelections').length);
+                        selections = getIdSelections();
+                        console.log(JSON.stringify(selections));
+                        // push or splice the selections if you want to save all data selections
+                    });
+
+                    function getIdSelections() {
+                        return $.map($table.bootstrapTable('getSelections'), function (row) {
+                            return row.section
+                        });
+                    }
+
+
+//                    console.log(contents);
+//                    alert(JSON.stringify(typeof contents));
+
+                    $('#noteModal').modal('show');
+                }
+            })
+
+            window.operateEvents = {
+                'click .yes': function (e, value, row, index) {
+                    alert('You click yes action, row: ' + JSON.stringify(row));
+                },
+                'click .no': function (e, value, row, index) {
+                    alert('You click no action, row: ' + JSON.stringify(row));
+                }
+            };
+        }
+
+        function updateNote() {
+            var note_id = document.getElementById('submitFeedback').value,
+                patient_id = document.getElementById('nameDropDown').value,
+                note_fb = document.getElementById('feedback').value,
+                person_fb = document.getElementById('feedbackPerson').value;
+            document.getElementById('feedback').value = '';
+            document.getElementById('feedbackPerson').value = '';
+
+            var today = new Date();
+            var dd = today.getDate();
+            var mm = today.getMonth()+1; //January is 0!
+            var yyyy = today.getFullYear();
+            if(dd<10) {
+                dd='0'+dd
+            }
+            if(mm<10) {
+                mm='0'+mm
+            }
+            var date_fb = mm+'/'+dd+'/'+yyyy;
+
+            if ((note_fb == "") || (person_fb == "")){
+                alert("Please leave a valid person name or error reason for sending an error report.");
+            }else{
+                var updateParas = JSON.stringify({'note_id':note_id,'patient_id':patient_id,'note_fb':note_fb,'person_fb':person_fb,'date_fb':date_fb});
+                $.ajax({
+                    datatype: 'json',
+                    url: '/updateNote',
+                    type: 'POST',
+                    data: updateParas,
+                    contentType: "application/json; charset=utf-8",
+                    success: function(message){
+                        var data = message['message'];
+                        alert(JSON.stringify(data));
+                    }
+                })
+            }
+        }
+
+    </script>
+
+    <script>
+        function detailFormatter(index, row) {
+            if(typeof row.content === 'string') {
+                return row.content;
+            } else {
+                sections = Object.keys(row);
+                contents = Object.values(row);
+                var res = '';
+                for(var i = 0; i < sections.length; i++){
+                    res += sections[i] + ': ' + contents[i] + '; <br>'
+                }
+                console.log('else ***');
+                console.log(sections);
+                console.log(JSON.stringify(row.content));
+                return res;
+            }
+
+        }
+
+        function start(){
+            getPatientList();
+            getFreetextList();
+        };
+    </script>
+</head>
+
+<body onload="start()">
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="index.html">Healthcare Data Analytics Platform</a>
+            </div>
+            <ul class="nav navbar-nav">
+                <li class="active"><a href="individual.html">Individual Information</a></li>
+                <li><a href="population.html">Population Statistics</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <li><img src="pic/dana_logo.png" alt="Logo" style="width:204px;height:44px;padding-top:5px;">&nbsp;&nbsp;&nbsp;&nbsp;</li>
+            </ul>
+        </div>
+    </nav>
+
+    <br>
+
+    <div class="ui-widget" style="max-width:90%; margin: 0 auto;">
+
+        <b id="goTop">Patient Name:&nbsp;</b>
+
+        <select id="nameDropDown">
+            <option value=""></option>
+        </select> &nbsp;&nbsp;&nbsp;&nbsp;
+
+        <label for="keyword"><b>Keyword:&nbsp;</b></label>
+
+        <input type="text" id="keyword" style="width:180px; height:22px;">
+        <!--<textarea id="keyword" style="width:50px; height:25px;"></textarea>-->
+
+        <!--<label class="checkbox-inline">-->
+            <!--<input type="checkbox" id="inlineCheckbox1" value="Code Status"> Code Status-->
+        <!--</label>-->
+        <!--<label class="checkbox-inline">-->
+            <!--<input type="checkbox" id="inlineCheckbox2" value="Stage"> Stage-->
+        <!--</label>-->
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <button type="button" class="btn btn-sm btn-primary" style="padding-top:3px; height:25px;" onclick="getPatientNotes()">Submit</button>
+    </div>
+    <br><br>
+
+    <div id="nav1-tab" style="max-width:90%; margin: 0 auto;">
+        <ul class="nav nav-tabs">
+            <li class="active"><a data-toggle="tab" href="#timelineNote">Timeline - Notes with Date</a></li>
+            <li><a data-toggle="tab" href="#tableNote">Table - Notes without Date</a></li>
+        </ul>
+
+        <div class="tab-content">
+            <div id="timelineNote" class="tab-pane fade in active">
+                <br>
+                <div>
+                    <h4><b>Patient Note Timeline:</b></h4><br><br>
+                </div>
+                <div id="visualization"></div>
+                <br><br>
+                <div id="noteModal" class="modal" aria-hidden="true" data-backdrop="static">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <button type="button" class="close" data-dismiss="modal">&times;</button>
+                                <h4 class="modal-title">Note Detail</h4>
+                            </div>
+                            <div class="modal-body" id="readTable"></div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tablesWithKeywords"></div>
+                <br><br>
+            </div>
+            <div id="tableNote" class="tab-pane fade">
+                <br>
+                <div>
+                    <h4><b>Patient Note Table:</b></h4><br><br>
+                </div>
+                <table id="noDateTable"
+                       data-pagination="true"
+                       data-click-to-select="true"
+                       data-single-select="true"
+                       data-flat= true
+                       data-response-handler="responseHandler"
+                       data-detail-view="true"
+                       data-detail-formatter="detailFormatter"
+                ></table>
+                <br>
+            </div>
+        </div>
+    </div>
+    <div id="reportModal" class="modal" aria-hidden="true" data-backdrop="static">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Note Attribute Error Report</h4>
+                </div>
+                <div class="modal-body">
+                    <p>Your Name:</p><input type="text" id="feedbackPerson" placeholder="FirstName LastName"><br><br>
+                    <p>Please put your feedback in the text box below.</p>
+                    <textarea id="feedback" placeholder="Please describe why" style="width:100%; height:70px;"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button id="submitFeedback" value="df" onclick="updateNote()" type="button" class="btn btn-default" data-dismiss="modal">Submit</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <script>
+        function reportNoteError(note_id){
+            $("#submitFeedback").val(note_id);
+        }
+
+    </script>
+
+    <br><br><br>
+    <div style="max-width:90%; margin: 0 auto;">
+        <h6>Created by DSGE Team ☀️️</h6>
+    </div>
+
+
+
+    </body>
+
+</html>

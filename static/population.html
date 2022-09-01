@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Population Statistics</title>
+    <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1/jquery.min.js"></script>
+    <link rel="stylesheet" href="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css">
+    <script src="http://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js"></script>
+
+    <script src="js/bootstrap-datepicker.js"></script>
+    <link href="css/bootstrap-datepicker.css" rel="stylesheet" type="text/css" />
+
+    <script src="js/d3.v3.min.js"></script>
+    <script src="js/dashboard.js"></script>
+    <link href="css/dashboard.css" rel="stylesheet" type="text/css" />
+
+
+
+    <script type="text/javascript">
+        $('.datepicker').datepicker({
+            format: 'mm/dd/yyyy',
+            startDate: '-3d'
+        });
+
+        function getProgramList() {
+            $.ajax({
+                datatype: 'json',
+                url: '/getProgramList',
+                type: 'GET',
+                success: function(pg_json) {
+                    var program_list = pg_json['pg_list'];
+                    var opts = document.getElementById('program');
+                    for (var i = 0; i < program_list.length; i++) { // [{'id':'123','name':'Jim'},{}]
+                        var opt = document.createElement('option');
+                        opt.text = program_list[i]['name'];
+                        opt.value = program_list[i]['id'];
+                        opts.add(opt);
+                    }
+                }
+            })
+        }
+
+//        function showOption2() {
+//            var opt1 = document.getElementById('db_option1').value;
+//            var opt_array = ['age','program'];
+//            var index = opt_array.indexOf(opt1);
+//            opt_array.splice(index, 1);
+//            var opts = document.getElementById('db_option2');
+//            for (var i = 0; i < opt_array.length; i++) { // [{'id':'123','name':'Jim'},{}]
+//                var opt = document.createElement('option');
+//                opt.text = opt_array[i].charAt(0).toUpperCase() + opt_array[i].slice(1);
+//                opt.value = opt_array[i];
+//                opts.add(opt);
+//            }
+//        }
+
+
+
+        function getDashboard() {
+            var opt1 = document.getElementById('db_option1').value;
+            var opt2 = document.getElementById('db_option2').value;
+            if ((opt1 == "") || (opt2 == "")){
+                alert("Please select correct dashboard parameters.");
+            } else{
+                var options = JSON.stringify({'opt1' : opt1, 'opt2' : opt2});
+                $.ajax({
+                    datatype: 'json',
+                    url: '/getDashboard',
+                    type: 'POST',
+                    data: options,
+                    contentType: "application/json; charset=utf-8",
+                    success: function(message){
+                        var data = message['message'];
+//                        alert(JSON.stringify(data));
+                        dashboard('#dashboard',data);
+                    }
+                })
+            }
+        }
+    </script>
+
+</head>
+
+<body onload="getProgramList();">
+
+    <nav class="navbar navbar-default">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="index.html">DFCI Patient Note Analysis</a>
+            </div>
+            <ul class="nav navbar-nav">
+                <li><a href="individual.html">Individual Information</a></li>
+                <li class="active"><a href="population.html">Population Statistics</a></li>
+            </ul>
+            <ul class="nav navbar-nav navbar-right">
+                <li><img src="pic/dana_logo.png" alt="Logo" style="width:204px;height:44px;padding-top:5px;">&nbsp;&nbsp;&nbsp;&nbsp;</li>
+            </ul>
+        </div>
+    </nav>
+    <br><br>
+    <div style="max-width:90%; margin: 0 auto;">
+
+        <div class="panel panel-info">
+            <div class="panel-heading">
+                <h3 class="panel-title">Patient Information Summary</h3>
+            </div>
+            <div class="panel-body">
+                <div class="col-sm-3">
+                    <b>Gender Ratio:</b><br>
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-info" role="progressbar" aria-valuenow="36"
+                             aria-valuemin="0" aria-valuemax="100" style="width:36%">
+                            36% Male
+                        </div>
+                        <div class="progress-bar progress-bar-danger" role="progressbar" aria-valuenow="64"
+                             aria-valuemin="0" aria-valuemax="100" style="width:64%">
+                            64% Female
+                        </div>
+                    </div><br>
+
+                    <b>Top 5 Cancers:</b><br>
+                    Gastrointestinal Oncology
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="22"
+                             aria-valuemin="0" aria-valuemax="100" style="width:22%">
+                            22%
+                        </div>
+                    </div>
+                    Breast Oncology
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="22"
+                             aria-valuemin="0" aria-valuemax="100" style="width:22%">
+                            22%
+                        </div>
+                    </div>
+                    Thoracic Oncology
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="18"
+                             aria-valuemin="0" aria-valuemax="100" style="width:18%">
+                            18%
+                        </div>
+                    </div>
+                    Hematologic Malignancies
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="10"
+                             aria-valuemin="0" aria-valuemax="100" style="width:10%">
+                            10%
+                        </div>
+                    </div>
+                    Pedi Perini Quality Of Life
+                    <div class="progress">
+                        <div class="progress-bar progress-bar-warning" role="progressbar" aria-valuenow="6"
+                             aria-valuemin="0" aria-valuemax="100" style="width:6%">
+                            6%
+                        </div>
+                    </div>
+                </div>
+                <div class="col-sm-9">
+                    <div>
+                        <b>Dashboard Option 1:&nbsp;</b>
+                        <select id="db_option1" style="background-color: #fff">
+                            <option value=""></option>
+                            <option value="age">Age</option>
+                            <option value="program">Program</option>
+                            <option value="last_days">Last_days</option>
+                        </select>&nbsp;&nbsp;&nbsp;&nbsp;
+                        <b>Dashboard Option 2:&nbsp;</b>
+                        <select id="db_option2" style="background-color: #fff">
+                            <option value=""></option>
+                        </select>&nbsp;&nbsp;&nbsp;&nbsp;
+                        <button type="button" class="btn btn-sm btn-primary" onclick="getDashboard()">Submit</button>
+                    </div>
+                    <div id='dashboard'></div>
+                </div>
+            </div>
+        </div>
+        <div class="panel panel-danger">
+            <div class="panel-heading">
+                <h3 class="panel-title">Patient Information Prediction</h3>
+            </div>
+            <div class="panel-body">
+
+                <div class='col-sm-3'>
+                    <b>Birthday:</b><br>
+                    <div class="input-group date" data-provide="datepicker">
+                        <input type="text" class="form-control">
+                        <div class="input-group-addon">
+                            <span class="glyphicon glyphicon-calendar"></span>
+                        </div>
+                    </div>
+                    <br>
+
+                    <b>Gender:</b><br>
+                    <form>
+                        <input type="radio" name="gender" value="MALE"> &nbsp;Male &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <input type="radio" name="gender" value="FEMALE"> &nbsp;Female &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                        <input type="radio" name="gender" value=""> &nbsp;Unknown
+                    </form>
+                    <br>
+
+                    <b>Primary Program:</b><br>
+
+                    <select id="program" style="height:34px; width:100%; background-color: #fff">
+                        <option value=""></option>
+                    </select>
+                    <br>
+
+                    <br><br>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="getPrediction()">Submit</button>
+
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <div style="max-width:90%; margin: 0 auto;">
+        <br>
+        <h6>Created by DFCI NLP Team ☀️️</h6>
+    </div>
+
+    <script>
+        //$(document).ready(function () {
+        $("#db_option1").on('change', function(){
+            var opt1 = document.getElementById('db_option1').value;
+            var opt_array = ['age','program','last_days'];
+            var index = opt_array.indexOf(opt1);
+            opt_array.splice(index, 1);
+            var opts = document.getElementById('db_option2');//self, this
+            $('#db_option2').empty();
+            for (var i = 0; i < opt_array.length; i++) { // [{'id':'123','name':'Jim'},{}]
+                var opt = document.createElement('option');
+                opt.text = opt_array[i].charAt(0).toUpperCase() + opt_array[i].slice(1);
+                opt.value = opt_array[i];
+                opts.add(opt);
+            }
+        });
+        //})
+    </script>
+</body>
+</html>
