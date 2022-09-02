@@ -15,7 +15,7 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 # with open(dir_path + '/fake_pt_notes.json', 'rb')as ptNotes:
 #     noteData = json.load(ptNotes)
 
-statusReg = pd.read_csv('../../Desktop/ehr_nlp/DIED_INFO_STATUS_REGISTRATION_50.csv')
+statusReg = pd.read_csv('DIED_INFO_STATUS_REGISTRATION_50.csv')
 pt_data = statusReg[['PATIENT_ID', 'LAST_NM', 'FIRST_NM', 'MIDDLE_NM', 'BIRTH_DT', 'DEATH_DT', 'LAST_ALIVE_DT',
                      'GENDER_NM', 'DFCI_MRN', 'PRIMARY_PROGRAM_NM']]
 
@@ -200,8 +200,8 @@ def get_Patient_Notes(patient_id, noteData, cancerData):
                 new_dict['keyword'] = gstage + status
 
                 table_notelist.append(new_dict)
-    if patient_id == 'patient_id_2':
-        timeline_notelist.append({'id': 'Death Date', 'content': 'Death Date: 12/16/2016', 'group': 'Inpatient', 'start': '12/16/2016', 'className':'darkRed'})
+    if patient_id == 'patient_id_1':
+        timeline_notelist.append({'id': 'Death Date', 'content': 'Death Date: 12/16/2021', 'group': 'Inpatient', 'start': '12/16/2021', 'className':'darkRed'})
     return timeline_notelist, table_notelist
 
 

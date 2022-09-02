@@ -36,7 +36,6 @@ def get_patient_notes():
     keywords = request.args.get('keywords')
     timeline_notes, table_notes = data_process.get_Patient_Notes(patientId, noteData, cancerData)
     keywordsInKeys, keywordsInValues = data_process.get_Keywords_Notes(patientId, keywords, noteData, cancerData)
-    print(keywordsInKeys)
     return jsonify(patientId=patientId, timeline_notes=timeline_notes, table_notes=table_notes,
                    keywordsInKeys=keywordsInKeys, keywordsInValues=keywordsInValues)
 
